@@ -1,0 +1,303 @@
+@import "tailwindcss";
+
+/* ------------------------------------------------------------------
+   THE QUIET PERIMETER — Design Tokens
+   Named palette: void (canvas), raised (surfaces), line (hairlines),
+   snow / fog / dim (text hierarchy), pulse (electric blue accent),
+   glint (cyan, reserved for "live" states only).
+------------------------------------------------------------------- */
+@theme {
+  /* Color — LIGHT is the default ("daylight ops") */
+  --color-void: #eef1f4;
+  --color-raised: #ffffff;
+  --color-elevated: #e4e9ef;
+  --color-line: rgba(10, 16, 24, 0.1);
+  --color-line-strong: rgba(10, 16, 24, 0.22);
+  --color-snow: #0d1117; /* primary text (semantic: highest contrast) */
+  --color-fog: #4f5a66; /* secondary text */
+  --color-dim: #8a94a0; /* dimmest text / labels */
+  --color-pulse: #3b62e0;
+  --color-pulse-soft: rgba(59, 98, 224, 0.1);
+  --color-glint: #0895b5;
+
+  /* Typography */
+  --font-sans: "Inter Tight Variable", system-ui, sans-serif;
+  --font-serif: "Instrument Serif", georgia, serif;
+  --font-mono: "JetBrains Mono Variable", ui-monospace, monospace;
+
+  /* Editorial type scale (fluid) */
+  --text-cover: clamp(3.25rem, 9.5vw, 8.5rem);
+  --text-cover--line-height: 0.95;
+  --text-cover--letter-spacing: -0.035em;
+  --text-lede: clamp(1.0625rem, 1.4vw, 1.25rem);
+  --text-lede--line-height: 1.65;
+  --text-tag: 0.6875rem;
+  --text-tag--letter-spacing: 0.22em;
+
+  /* Motion */
+  --ease-quiet: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-swift: cubic-bezier(0.65, 0, 0.35, 1);
+}
+
+/* ---------- Dark theme ("night watch") ---------- */
+
+[data-theme="dark"] {
+  --color-void: #060809;
+  --color-raised: #0b0e11;
+  --color-elevated: #11151a;
+  --color-line: rgba(255, 255, 255, 0.08);
+  --color-line-strong: rgba(255, 255, 255, 0.16);
+  --color-snow: #f2f4f6;
+  --color-fog: #9ba3ad;
+  --color-dim: #565f68;
+  --color-pulse: #4d7cff;
+  --color-pulse-soft: rgba(77, 124, 255, 0.14);
+  --color-glint: #7ce7ff;
+}
+
+/* ---------- Base ---------- */
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background: var(--color-void);
+  color: var(--color-snow);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  overflow-x: hidden;
+  transition:
+    background-color 0.5s ease,
+    color 0.5s ease;
+}
+
+::selection {
+  background: var(--color-pulse);
+  color: var(--color-void);
+}
+
+:focus-visible {
+  outline: 1px solid var(--color-pulse);
+  outline-offset: 4px;
+  border-radius: 2px;
+}
+
+/* ---------- Recurring utilities ---------- */
+
+/* System label — mono, tracked-out, used for indexes & telemetry */
+.sys-tag {
+  font-family: var(--font-mono);
+  font-size: var(--text-tag);
+  letter-spacing: var(--text-tag--letter-spacing);
+  text-transform: uppercase;
+  color: var(--color-dim);
+}
+
+/* Glass surface */
+.glass {
+  background: linear-gradient(
+    150deg,
+    rgba(255, 255, 255, 0.055),
+    rgba(255, 255, 255, 0.015) 55%
+  );
+  border: 1px solid var(--color-line);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+}
+
+/* Film grain — SVG turbulence, essentially free to render */
+.grain::after {
+  content: "";
+  position: fixed;
+  inset: -50%;
+  z-index: 60;
+  pointer-events: none;
+  opacity: 0.04;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+/* Blueprint grid, faded at the edges */
+.blueprint {
+  background-image:
+    linear-gradient(var(--color-line) 1px, transparent 1px),
+    linear-gradient(90deg, var(--color-line) 1px, transparent 1px);
+  background-size: 72px 72px;
+  mask-image: radial-gradient(
+    ellipse 90% 80% at 60% 40%,
+    black 25%,
+    transparent 72%
+  );
+}
+
+/* Signature scanline — one thin line of light travelling the viewport */
+@keyframes scan-travel {
+  0% {
+    top: -2%;
+    opacity: 0;
+  }
+  6% {
+    opacity: 1;
+  }
+  94% {
+    opacity: 1;
+  }
+  100% {
+    top: 102%;
+    opacity: 0;
+  }
+}
+
+.scanline {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(77, 124, 255, 0.5) 35%,
+    rgba(124, 231, 255, 0.85) 50%,
+    rgba(77, 124, 255, 0.5) 65%,
+    transparent
+  );
+  box-shadow: 0 0 24px rgba(77, 124, 255, 0.35);
+  animation: scan-travel 13s linear infinite;
+}
+
+/* Radar sweep — slow rotating cone of light */
+@keyframes sweep-rotate {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.radar-sweep {
+  background: conic-gradient(
+    from 0deg,
+    transparent 0deg,
+    rgba(77, 124, 255, 0.07) 40deg,
+    rgba(77, 124, 255, 0.16) 58deg,
+    transparent 78deg
+  );
+  animation: sweep-rotate 26s linear infinite;
+}
+
+/* Live-state pulsing dot */
+@keyframes live-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(124, 231, 255, 0.45);
+  }
+  60% {
+    box-shadow: 0 0 0 7px rgba(124, 231, 255, 0);
+  }
+}
+
+.live-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 9999px;
+  background: var(--color-glint);
+  animation: live-pulse 2.4s ease-out infinite;
+}
+
+/* Scroll cue line */
+@keyframes cue-drop {
+  0% {
+    transform: scaleY(0);
+    transform-origin: top;
+  }
+  45% {
+    transform: scaleY(1);
+    transform-origin: top;
+  }
+  55% {
+    transform: scaleY(1);
+    transform-origin: bottom;
+  }
+  100% {
+    transform: scaleY(0);
+    transform-origin: bottom;
+  }
+}
+
+.cue-line {
+  width: 1px;
+  height: 44px;
+  background: linear-gradient(var(--color-pulse), transparent);
+  animation: cue-drop 2.2s var(--ease-quiet) infinite;
+}
+
+/* ---------- Admin console ---------- */
+
+.field {
+  width: 100%;
+  background: var(--color-raised);
+  border: 1px solid var(--color-line);
+  border-radius: 8px;
+  padding: 0.55rem 0.75rem;
+  font-size: 0.875rem;
+  color: var(--color-snow);
+}
+
+.field:focus {
+  outline: none;
+  border-color: var(--color-pulse);
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  border-radius: 8px;
+  padding: 0.5rem 1rem;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  border: 1px solid var(--color-line);
+  color: var(--color-fog);
+  cursor: pointer;
+  transition: color 0.2s, border-color 0.2s, background 0.2s;
+}
+
+.btn:hover {
+  color: var(--color-snow);
+  border-color: var(--color-line-strong);
+}
+
+.btn-primary {
+  background: var(--color-pulse);
+  border-color: var(--color-pulse);
+  color: #fff;
+}
+
+.btn-primary:hover {
+  color: #fff;
+  filter: brightness(1.1);
+}
+
+.btn-danger:hover {
+  color: #e5484d;
+  border-color: #e5484d;
+}
+
+/* ---------- Accessibility ---------- */
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  .scanline,
+  .radar-sweep,
+  .live-dot,
+  .cue-line {
+    animation: none;
+  }
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+  }
+}

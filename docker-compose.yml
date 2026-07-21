@@ -1,0 +1,61 @@
+services:
+  # Development — hot reload:  docker compose up
+  web:
+    build:
+      context: .
+      target: dev
+    ports:
+      - "3000:3000"
+    volumes:
+      - .:/app
+      # keep container-installed deps & build cache, don't shadow with host
+      - /app/node_modules
+      - /app/.next
+      - /app/src/generated
+    environment:
+      - WATCHPACK_POLLING=true
+      - DATABASE_URL=postgresql://postgres:postgres@db:5432/portfolio
+    env_file:
+      - path: .env
+        required: false
+    command: sh -c "npx prisma generate && npx prisma db push && npm run dev"
+    depends_on:
+      db:
+        condition: service_healthy
+
+  db:
+    image: postgres:16-alpine
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=portfolio
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 3s
+      timeout: 3s
+      retries: 15
+
+  # Production — standalone image:  docker compose --profile prod up web-prod
+  web-prod:
+    profiles: ["prod"]
+    build:
+      context: .
+      target: runner
+    ports:
+      - "3000:3000"
+    environment:
+      - DATABASE_URL=postgresql://postgres:postgres@db:5432/portfolio
+    env_file:
+      - path: .env
+        required: false
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  pgdata:

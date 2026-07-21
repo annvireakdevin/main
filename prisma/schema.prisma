@@ -1,0 +1,167 @@
+// PERIMETER CMS — data model
+// Projects power the public Arsenal gallery; MediaAsset is the
+// Cloudinary-backed media library; the remaining models belong to
+// Better Auth (email/password, single admin).
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ---------- Content ----------
+
+enum ProjectStatus {
+  DRAFT
+  PUBLISHED
+}
+
+enum ProjectCategory {
+  TOOL
+  PROJECT
+  RESEARCH
+  BLOG
+  EXPERIMENT
+}
+
+enum GridSize {
+  SMALL
+  MEDIUM
+  WIDE
+  TALL
+  HERO
+}
+
+enum ArtVariant {
+  TYPE
+  TICKS
+  RING
+  GRID
+  WAVE
+}
+
+model Project {
+  id          String          @id @default(cuid())
+  title       String
+  slug        String          @unique
+  summary     String?
+  meta        String? // caption line, e.g. "SIEM · daily driver"
+  href        String? // external link (GitHub, live demo)
+  category    ProjectCategory @default(PROJECT)
+  status      ProjectStatus   @default(DRAFT)
+  gridSize    GridSize        @default(SMALL)
+  /// Procedural cover used when no thumbnail is set
+  artVariant  ArtVariant      @default(TYPE)
+  artText     String?
+  /// Order within the public grid (ascending)
+  position    Int             @default(0)
+  thumbnail   MediaAsset?     @relation("ProjectThumbnail", fields: [thumbnailId], references: [id], onDelete: SetNull)
+  thumbnailId String?
+  gallery     ProjectMedia[]
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+
+  @@index([status, position])
+  @@map("project")
+}
+
+enum MediaKind {
+  IMAGE
+  VIDEO
+  PDF
+}
+
+model MediaAsset {
+  id            String         @id @default(cuid())
+  kind          MediaKind
+  /// Cloudinary public_id
+  publicId      String         @unique
+  url           String
+  /// Cloudinary resource_type (image | video | raw) — needed for deletes
+  resourceType  String         @default("image")
+  format        String?
+  bytes         Int            @default(0)
+  width         Int?
+  height        Int?
+  alt           String?
+  createdAt     DateTime       @default(now())
+  thumbnailFor  Project[]      @relation("ProjectThumbnail")
+  galleryOf     ProjectMedia[]
+
+  @@map("media_asset")
+}
+
+/// Ordered gallery attachment (images, videos, PDFs) on a project
+model ProjectMedia {
+  projectId String
+  mediaId   String
+  position  Int        @default(0)
+  project   Project    @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  media     MediaAsset @relation(fields: [mediaId], references: [id], onDelete: Cascade)
+
+  @@id([projectId, mediaId])
+  @@map("project_media")
+}
+
+// ---------- Better Auth ----------
+
+model User {
+  id            String    @id @default(cuid())
+  name          String
+  email         String    @unique
+  emailVerified Boolean   @default(false)
+  image         String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  sessions      Session[]
+  accounts      Account[]
+
+  @@map("user")
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  expiresAt DateTime
+  token     String   @unique
+  ipAddress String?
+  userAgent String?
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("session")
+}
+
+model Account {
+  id                    String    @id @default(cuid())
+  accountId             String
+  providerId            String
+  userId                String
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accessToken           String?
+  refreshToken          String?
+  idToken               String?
+  accessTokenExpiresAt  DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope                 String?
+  password              String?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  @@map("account")
+}
+
+model Verification {
+  id         String   @id @default(cuid())
+  identifier String
+  value      String
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@map("verification")
+}
